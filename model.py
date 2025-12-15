@@ -71,24 +71,6 @@ class NoisyModel(BaseModel):
         z = [F.normalize(z[i], dim=-1) for i in range(self.n_views)]
         
         return z
-    
-
-    @torch.no_grad()
-    def update_cluster_centers(self, data, labels):
-        with torch.no_grad():
-            target_features = [encoder(view) for encoder, view in zip(self.target_encoder, data)]
-            # fused_features = F.normalize(torch.stack(target_features, dim=0).sum(dim=0)/2)
-            fused_features = F.normalize(torch.cat(target_features, dim=1), dim=1)
-            kmeans = KMeans(n_clusters=self.n_classes, random_state=42, n_init=10)
-            cluster_labels = kmeans.fit_predict(fused_features.cpu().numpy())
-
-            cluster_centers = []
-            cluster_labels_tensor = torch.tensor(cluster_labels, device=fused_features.device)
-            for c in range(self.n_classes):
-                mask = (cluster_labels_tensor == c)
-                center = fused_features[mask].mean(dim=0)
-                cluster_centers.append(center)
-            self.cluster_centers = torch.stack(cluster_centers)
 
 class FCN(nn.Module):
     def __init__(
