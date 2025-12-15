@@ -9,7 +9,6 @@ import time
 from collections import defaultdict, deque
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
-from itertools import cycle
 
 
 def fix_random_seeds(seed=None):
@@ -35,17 +34,6 @@ def adjust_learning_config(optimizer, epoch, args):
         param_group["lr"] = lr
 
     return lr
-
-
-class FileLogger:
-    def __init__(self, output_file):
-        self.output_file = output_file
-
-    def write(self, msg, p=True):
-        with open(self.output_file, mode="a", encoding="utf-8") as log_file:
-            log_file.writelines(msg + "\n")
-        if p:
-            print(msg)
 
 
 def evaluate(label, pred):
@@ -82,7 +70,7 @@ def get_y_preds(y_true, cluster_assignments, n_clusters):
     correspond to the actual labels in y_true (as estimated by Munkres)
     cluster_assignments:    array of labels, outputted by kmeans
     y_true:                 true labels
-    n_cluster:             number of clusters in the dataset
+    n_cluster:              number of clusters in the dataset
     returns:    a tuple containing the accuracy and confusion matrix,
                 in that order
     """
@@ -272,16 +260,9 @@ def tsne_plot(embeddings, labels, file_path='./'):
     X_2d = tsne.fit_transform(embeddings)
 
     plt.figure(figsize=(5,5))
-    # colors = plt.cm.rainbow(np.linspace(0, 1, n_clusters))
-    # tab_colors = list(plt.cm.tab20.colors + plt.cm.tab20b.colors + plt.cm.tab20c.colors)
-    # colors = cycle(tab_colors)
     import seaborn as sns
     palette = sns.color_palette("husl", n_clusters)
 
-    # for i in range(n_clusters):
-    #     plt.scatter(X_2d[labels==i, 0], X_2d[labels==i, 1], s=2, color=colors[i], label=str(i), rasterized=True)
-    # for i, color in zip(range(n_clusters), colors):
-    #     plt.scatter(X_2d[labels == i, 0], X_2d[labels == i, 1], s=1, color=color, label=str(i), rasterized=True)
     for i in range(n_clusters):
         plt.scatter(X_2d[labels == i, 0], X_2d[labels == i, 1], s=1, color=palette[i], label=str(i), rasterized=True)
     ax = plt.gca()

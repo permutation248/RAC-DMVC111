@@ -41,28 +41,6 @@ class BaseModel(torch.nn.Module):
             ):
                 param_t.data = param_t.data * momentum + param_o.data * (1 - momentum)
 
-    @torch.no_grad()
-    def extract_feature(self, data, mask, realign=False):
-        N = data[0].shape[0]
-        z = [self.target_encoder[i](data[i]) for i in range(self.n_views)]
-
-        if realign:
-            for i in range(1, self.n_views):
-                bs = 1024
-                tmp, z_tmp, z0 = (
-                    F.normalize(self.cross_view_decoder[i](z[i])),
-                    torch.zeros(N, self.feature_dim[i]).cuda(),
-                    z[0],
-                )
-                for j in range(int(np.ceil(z[i].shape[0] / bs))):
-                    sim = z0[j * bs : (j + 1) * bs].mm(tmp.t())
-                    idx = sim.argmax(1)
-                    z_tmp[j * bs : (j + 1) * bs] = z[i][idx]
-                z[i] = z_tmp
-
-        z = [F.normalize(z[i]) for i in range(self.n_views)]
-        return z
-
 class NoisyModel(BaseModel):
     def forward_impl(self, data_ori, data_copy, warm_up, singular_thresh):
         z = [self.online_encoder[i](data_copy[i]) for i in range(self.n_views)]
@@ -70,26 +48,11 @@ class NoisyModel(BaseModel):
         p = [self.cross_view_decoder[i](z[i]) for i in range(self.n_views)]
         z_t = [self.target_encoder[i](data_copy[i]) for i in range(self.n_views)]
 
-        # if warm_up:
-        #     mp_intra = torch.eye(z[0].shape[0]).cuda()
-        #     mp_intra = [mp_intra, mp_intra]
-        #     mp_inter = mp_intra
-        #     l_dist = torch.tensor(0.0).cuda()
-        # else:
-        #     mp_intra, mp_inter = self.robust_affinity(p, z_t, self.sigma)
-        #     logit_p = [self.clustering_layer[i](p[i]) for i in range(self.n_views)]
-        #     l_dist = (self.dist(logit_p[0], z_t, self.cluster_centers) + self.dist(logit_p[1], z_t, self.cluster_centers))/2
-
         l_rec = (F.mse_loss(data_ori[0], x_r[1], reduction='mean') + F.mse_loss(data_ori[1], x_r[0], reduction='mean')) / 2
-        # MODIFIED: 使用纯对比损失 (self.cl.forward) 并传递 None 作为 mask_pos，
-        # 强制使用单位矩阵 (Identity Matrix) 作为正样本掩码，实现 InfoNCE。
+
         l_intra = (self.cl.forward(z[0], z_t[0], None) + self.cl.forward(z[1], z_t[1], None)) / 2
         l_inter = (self.cl.forward(p[0], z_t[1], None) + self.cl.forward(p[1], z_t[0], None)) / 2
-        print("original constrastive loss used")
-        # l_intra = (self.cl.noisy_contrastive(z[0], z_t[0], mp_intra[0]) + self.cl.noisy_contrastive(z[1], z_t[1], mp_intra[1])) / 2
-        # l_inter = (self.cl.noisy_contrastive(p[0], z_t[1], mp_inter[0]) + self.cl.noisy_contrastive(p[1], z_t[0], mp_inter[1])) / 2
 
-        #loss = {'l_rec': l_rec, 'l_intra': l_intra, 'l_inter': l_inter, 'l_dist': l_dist}
         loss = {'l_rec': l_rec, 'l_intra': l_intra, 'l_inter': l_inter}
         return loss
 
