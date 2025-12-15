@@ -42,13 +42,13 @@ class BaseModel(torch.nn.Module):
                 param_t.data = param_t.data * momentum + param_o.data * (1 - momentum)
 
 class NoisyModel(BaseModel):
-    def forward_impl(self, data_ori, data_copy, warm_up, singular_thresh):
+    def forward(self, data_ori, data_copy, warm_up, singular_thresh):
         z = [self.online_encoder[i](data_copy[i]) for i in range(self.n_views)]
-        x_r = [self.online_decoder[1-i](z[i]) for i in range(self.n_views)]
+        x_r = [self.online_decoder[i](z[i]) for i in range(self.n_views)]
         p = [self.cross_view_decoder[i](z[i]) for i in range(self.n_views)]
         z_t = [self.target_encoder[i](data_copy[i]) for i in range(self.n_views)]
 
-        l_rec = (F.mse_loss(data_ori[0], x_r[1], reduction='mean') + F.mse_loss(data_ori[1], x_r[0], reduction='mean')) / 2
+        l_rec = (F.mse_loss(data_ori[0], x_r[0], reduction='mean') + F.mse_loss(data_ori[1], x_r[1], reduction='mean')) / 2
 
         l_intra = (self.cl.forward(z[0], z_t[0], None) + self.cl.forward(z[1], z_t[1], None)) / 2
         l_inter = (self.cl.forward(p[0], z_t[1], None) + self.cl.forward(p[1], z_t[0], None)) / 2
@@ -164,5 +164,4 @@ class ContrastiveLoss(nn.Module):
         similarity = -torch.log(torch.softmax(similarity, dim=1))
         nll_loss = similarity * mask_pos / mask_pos.sum(dim=1, keepdim=True)
         loss = nll_loss.sum() / N
-        # loss = nll_loss.mean()
         return loss

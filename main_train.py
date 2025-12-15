@@ -30,7 +30,7 @@ def get_args_parser():
     parser.add_argument("--n_views", type=int, default=2, help="number of views")
     parser.add_argument("--n_classes", type=int, default=10, help="number of classes")
     parser.add_argument("--batch_size", type=int, default=256, help="batch size per GPU")
-    parser.add_argument("--epochs", type=int, default=100)
+    parser.add_argument("--epochs", type=int, default=300)
     parser.add_argument("--warmup_epochs", type=int, default=20, help="epochs to warmup learning rate")
     parser.add_argument("--data_norm", type=str, default="standard", choices=["standard", "min-max", "l2-norm"])
     parser.add_argument("--train_time", type=int, default=1)
