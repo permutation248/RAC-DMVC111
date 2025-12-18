@@ -37,7 +37,7 @@ def train_one_epoch(model, data_loader_train, optimizer, device, epoch, args=Non
         inter_loss = loss_dict['l_inter']
 
         # 总 Loss：重构 + 视图内对比 + 视图间对比 (无蒸馏)
-        total_loss = rec_loss + intra_loss + inter_loss
+        total_loss = rec_loss + inter_loss + intra_loss
 
         Recon_losses.update(rec_loss.item(), len(ids))
         Intra_losses.update(intra_loss.item(), len(ids))

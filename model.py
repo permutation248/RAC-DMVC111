@@ -50,8 +50,17 @@ class NoisyModel(BaseModel):
 
         l_rec = (F.mse_loss(data_ori[0], x_r[0], reduction='mean') + F.mse_loss(data_ori[1], x_r[1], reduction='mean')) / 2
 
+        #原始版本
+        # l_intra = (self.cl.forward(z[0], z_t[0], None) + self.cl.forward(z[1], z_t[1], None)) / 2
+        # l_inter = (self.cl.forward(p[0], z_t[1], None) + self.cl.forward(p[1], z_t[0], None)) / 2
+
+        #去掉cross view decoder结构
         l_intra = (self.cl.forward(z[0], z_t[0], None) + self.cl.forward(z[1], z_t[1], None)) / 2
-        l_inter = (self.cl.forward(p[0], z_t[1], None) + self.cl.forward(p[1], z_t[0], None)) / 2
+        l_inter = (self.cl.forward(z[0], z_t[1], None) + self.cl.forward(z[1], z_t[0], None)) / 2
+
+        #去掉cross view decoder与target encoder结构
+        # l_intra = torch.tensor(0.0, device=data_ori[0].device)
+        # l_inter = (self.cl.forward(z[0], z[1], None) + self.cl.forward(z[1], z[0], None))
 
         loss = {'l_rec': l_rec, 'l_intra': l_intra, 'l_inter': l_inter}
         return loss
@@ -62,10 +71,11 @@ class NoisyModel(BaseModel):
         简化版特征提取（无缺失场景）
         """
         # 编码
-        z = [self.target_encoder[i](data[i]) for i in range(self.n_views)]
+        z = [self.online_encoder[i](data[i]) for i in range(self.n_views)]
+        print(z[0].shape)
         
         # 投影对齐
-        z = [self.cross_view_decoder[i](z[i]) for i in range(self.n_views)]
+        #z = [self.cross_view_decoder[i](z[i]) for i in range(self.n_views)]
         
         # 归一化
         z = [F.normalize(z[i], dim=-1) for i in range(self.n_views)]
